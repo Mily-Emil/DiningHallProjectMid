@@ -20,7 +20,17 @@ export const Route = createFileRoute("/_authenticated/menu")({
 });
 
 function todayMakassar() {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Makassar" }).format(new Date());
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Makassar",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(new Date())
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts["year"]}-${parts["month"]}-${parts["day"]}`;
 }
 
 const SESSIONS: MealSession[] = ["sarapan", "makan_siang", "makan_malam"];

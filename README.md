@@ -22,3 +22,11 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## Deployment
+
+Deploy the application from the `DiningHallMid` directory to Vercel. Database
+migrations are separate from Vercel deployments: before using the assisted-meal
+feature on an existing Supabase project, run the SQL in
+`supabase/migrations/20261004100000_add_assisted_scan_status.sql` once in the
+Supabase SQL Editor. This adds the `assisted` attendance status used by staff.

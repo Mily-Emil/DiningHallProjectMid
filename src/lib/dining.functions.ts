@@ -26,12 +26,12 @@ function localParts() {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   });
   const parts = Object.fromEntries(fmt.formatToParts(new Date()).map((p) => [p.type, p.value]));
   return {
-    date: `${parts['year']}-${parts['month']}-${parts['day']}`,
-    minutes: Number(parts['hour']) * 60 + Number(parts['minute']),
+    date: `${parts["year"]}-${parts["month"]}-${parts["day"]}`,
+    minutes: Number(parts["hour"]) * 60 + Number(parts["minute"]),
   };
 }
 
@@ -49,9 +49,11 @@ export const issueQrToken = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { session, date } = currentSession();
+    if (!session) throw new Error("QR hanya dapat dibuat selama sesi makan berlangsung.");
+
     const token = crypto.randomUUID().replace(/-/g, "") + Date.now().toString(36);
     const expiresAt = new Date(Date.now() + TOKEN_TTL_SECONDS * 1000).toISOString();
-    const { date } = currentSession();
 
     const { data: already } = await supabaseAdmin
       .from("attendance_logs")
@@ -69,7 +71,6 @@ export const issueQrToken = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
-    const { session } = currentSession();
     return { token, expiresAt, ttl: TOKEN_TTL_SECONDS, session };
   });
 
@@ -328,7 +329,7 @@ export const assistStudent = createServerFn({ method: "POST" })
   });
 
 const menuInput = z.object({
-  menu_date: z.string().regex(/^\\d{4}-\\d{2}-\\d{2}$/),
+  menu_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   session: z.enum(["sarapan", "makan_siang", "makan_malam"]),
   name: z.string().trim().min(2).max(120),
   description: z.string().trim().max(300).optional().nullable(),

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { CheckCircle2, Clock, RefreshCw, QrCode, Soup } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -31,42 +31,55 @@ function StudentHome() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [countdown, setCountdown] = useState(0);
   const [showQr, setShowQr] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [qrRetry, setQrRetry] = useState(0);
 
   const status = useQuery({
     queryKey: ["my-status"],
     queryFn: () => fetchStatus(),
-    refetchInterval: 15000,
+    refetchInterval: 5000,
   });
 
   const isStaff = (status.data?.roles ?? []).some((r) => r === "staff" || r === "admin");
 
-  const rotate = useCallback(async () => {
-    const res = await issue();
-    if (canvasRef.current) {
-      await QRCode.toCanvas(canvasRef.current, res.token, {
-        width: 260,
-        margin: 1,
-        color: { dark: "#1b2f25", light: "#ffffff" },
-      });
-    }
-    setCountdown(res.ttl);
-  }, [issue]);
-
   useEffect(() => {
     if (!showQr) return;
     let cancelled = false;
-    const run = () => {
-      if (!cancelled) void rotate();
+    let rotationTimer: number | undefined;
+    const run = async () => {
+      try {
+        const res = await issue();
+        if (cancelled) return;
+        if (!res.session) throw new Error("QR hanya aktif selama sesi makan berlangsung.");
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        await QRCode.toCanvas(canvas, res.token, {
+          width: 260,
+          margin: 1,
+          color: { dark: "#1b2f25", light: "#ffffff" },
+        });
+        if (cancelled) return;
+        setQrError(null);
+        setCountdown(res.ttl);
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : "QR tidak dapat dibuat.";
+        setQrError(message);
+        setCountdown(0);
+        const canvas = canvasRef.current;
+        if (canvas) canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+      } finally {
+        if (!cancelled) rotationTimer = window.setTimeout(() => void run(), 10000);
+      }
     };
-    run();
-    const rotator = setInterval(run, 10000);
-    const ticker = setInterval(() => setCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
+    void run();
+    const ticker = window.setInterval(() => setCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
     return () => {
       cancelled = true;
-      clearInterval(rotator);
-      clearInterval(ticker);
+      window.clearTimeout(rotationTimer);
+      window.clearInterval(ticker);
     };
-  }, [showQr, rotate]);
+  }, [showQr, issue, qrRetry]);
 
   useEffect(() => {
     if (isStaff) navigate({ to: "/scan", replace: true });
@@ -167,6 +180,18 @@ function StudentHome() {
                 <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
                   <RefreshCw className="size-4" /> Kode berganti otomatis · kedaluwarsa {countdown}s
                 </p>
+                {qrError && (
+                  <div role="alert" className="mt-3 text-center text-sm text-destructive">
+                    <p>{qrError}</p>
+                    <button
+                      type="button"
+                      onClick={() => setQrRetry((attempt) => attempt + 1)}
+                      className="mt-2 underline"
+                    >
+                      Coba buat QR lagi
+                    </button>
+                  </div>
+                )}
               </>
             ) : (
               <button
