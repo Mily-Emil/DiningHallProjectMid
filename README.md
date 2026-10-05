@@ -30,3 +30,10 @@ migrations are separate from Vercel deployments: before using the assisted-meal
 feature on an existing Supabase project, run the SQL in
 `supabase/migrations/20261004100000_add_assisted_scan_status.sql` once in the
 Supabase SQL Editor. This adds the `assisted` attendance status used by staff.
+
+To restrict staff access, also run
+`supabase/migrations/20261005040000_restrict_self_assigned_roles.sql` once.
+New accounts are always assigned the student role; an administrator must grant
+the `staff` role to approved staff accounts through Supabase. Review existing
+staff-role assignments after applying this migration and remove any that were
+not granted to approved staff.

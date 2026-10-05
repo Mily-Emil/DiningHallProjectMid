@@ -13,7 +13,7 @@ export const SESSION_LABEL: Record<MealSession, string> = {
 const SESSION_WINDOWS: { session: MealSession; start: number; end: number }[] = [
   { session: "sarapan", start: 6 * 60, end: 8 * 60 },
   { session: "makan_siang", start: 12 * 60, end: 14 * 60 },
-  { session: "makan_malam", start: 18 * 60, end: 24 * 60 },
+  { session: "makan_malam", start: 18 * 60, end: 20 * 60 },
 ];
 
 const TZ = "Asia/Makassar";

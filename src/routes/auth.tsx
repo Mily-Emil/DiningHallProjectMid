@@ -33,7 +33,6 @@ function AuthPage() {
   const [regNumber, setRegNumber] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"student" | "staff">("student");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -55,7 +54,7 @@ function AuthPage() {
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { reg_number: regNumber.trim(), full_name: fullName.trim(), role },
+            data: { reg_number: regNumber.trim(), full_name: fullName.trim(), role: "student" },
           },
         });
         if (error) throw error;
@@ -131,20 +130,6 @@ function AuthPage() {
               placeholder="minimal 6 karakter"
             />
           </label>
-
-          {mode === "register" && (
-            <label className="block text-sm">
-              <span className="mb-1.5 block font-medium">Peran</span>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as "student" | "staff")}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="student">Mahasiswa</option>
-                <option value="staff">Staff dapur</option>
-              </select>
-            </label>
-          )}
 
           <button
             type="submit"
