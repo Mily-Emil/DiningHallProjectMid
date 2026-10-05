@@ -41,6 +41,20 @@ function currentSession(): { session: MealSession | null; date: string } {
   return { session: found ? found.session : null, date };
 }
 
+/** Public: show today's meal menu on the landing page. */
+export const getPublicMenu = createServerFn({ method: "GET" }).handler(async () => {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { date } = currentSession();
+  const { data: items, error } = await supabaseAdmin
+    .from("menu_items")
+    .select("id, session, name, description")
+    .eq("menu_date", date)
+    .order("created_at");
+
+  if (error) throw new Error(error.message);
+  return { date, items: items ?? [] };
+});
+
 const TOKEN_TTL_SECONDS = 15;
 const DAILY_MSG = "Sudah mengambil jatah hari ini (maksimal 1x per hari).";
 

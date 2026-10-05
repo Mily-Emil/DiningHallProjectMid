@@ -1,8 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { QrCode, Soup, UtensilsCrossed } from "lucide-react";
+import { getPublicMenu, SESSION_LABEL, type MealSession } from "@/lib/dining.functions";
 
-const mealSchedules = ["Sarapan", "Makan Siang", "Makan Malam"] as const;
+const mealSessions: MealSession[] = ["sarapan", "makan_siang", "makan_malam"];
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,8 +28,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  const [selectedSchedule, setSelectedSchedule] =
-    useState<(typeof mealSchedules)[number]>("Makan Malam");
+  const fetchMenu = useServerFn(getPublicMenu);
+  const menu = useQuery({
+    queryKey: ["public-menu"],
+    queryFn: () => fetchMenu(),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,26 +73,46 @@ function Landing() {
           <h2 className="flex items-center gap-3 font-display text-xl font-semibold sm:text-2xl">
             <Soup className="size-6 shrink-0" /> Daftar makanan hari ini
           </h2>
+          {menu.data?.date && (
+            <p className="mt-2 text-sm text-muted-foreground">{menu.data.date}</p>
+          )}
+          {menu.isError && (
+            <div role="alert" className="mt-4 flex items-center justify-between gap-3 text-sm text-destructive">
+              <span>Menu gagal dimuat. {menu.error.message}</span>
+              <button type="button" onClick={() => void menu.refetch()} className="shrink-0 underline">
+                Coba lagi
+              </button>
+            </div>
+          )}
           <div className="mt-6 grid gap-3 sm:grid-cols-3 sm:gap-4">
-            {mealSchedules.map((schedule) => {
-              const isSelected = selectedSchedule === schedule;
+            {mealSessions.map((session) => {
+              const items = (menu.data?.items ?? []).filter((item) => item.session === session);
               return (
-                <button
-                  key={schedule}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => setSelectedSchedule(schedule)}
-                  className={`min-h-24 rounded-3xl border px-5 py-4 text-left transition-colors ${
-                    isSelected ? "border-primary bg-secondary/50" : "bg-card hover:bg-secondary/30"
-                  }`}
+                <section
+                  key={session}
+                  className="min-h-24 rounded-3xl border bg-card px-5 py-4"
+                  aria-labelledby={`public-menu-${session}`}
                 >
-                  <span className="block font-display text-base font-medium sm:text-lg">
-                    {schedule}
-                  </span>
-                  <span className="mt-2 block text-sm text-muted-foreground">
-                    Menu belum diatur.
-                  </span>
-                </button>
+                  <h3 id={`public-menu-${session}`} className="font-display text-base font-medium sm:text-lg">
+                    {SESSION_LABEL[session]}
+                  </h3>
+                  {menu.isPending ? (
+                    <p className="mt-2 text-sm text-muted-foreground">Memuat menu...</p>
+                  ) : items.length > 0 ? (
+                    <ul className="mt-2 space-y-2 text-sm">
+                      {items.map((item) => (
+                        <li key={item.id}>
+                          <p className="font-medium">{item.name}</p>
+                          {item.description && (
+                            <p className="text-xs text-muted-foreground">{item.description}</p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted-foreground">Menu belum diatur.</p>
+                  )}
+                </section>
               );
             })}
           </div>
