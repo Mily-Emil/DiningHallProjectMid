@@ -18,6 +18,36 @@ const SESSION_WINDOWS: { session: MealSession; start: number; end: number }[] = 
 
 const TZ = "Asia/Makassar";
 
+function sessionWindows() {
+  const demoDinnerWindow = process.env["DEMO_DINNER_WINDOW"];
+  if (!demoDinnerWindow) return SESSION_WINDOWS;
+
+  const match = /^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$/.exec(demoDinnerWindow);
+  if (!match) {
+    throw new Error("DEMO_DINNER_WINDOW harus menggunakan format HH:mm-HH:mm.");
+  }
+
+  const start = Number(match[1]) * 60 + Number(match[2]);
+  const end = Number(match[3]) * 60 + Number(match[4]);
+  if (end <= start) {
+    throw new Error("Waktu akhir DEMO_DINNER_WINDOW harus setelah waktu mulai.");
+  }
+
+  return SESSION_WINDOWS.map((window) =>
+    window.session === "makan_malam" ? { ...window, start, end } : window,
+  );
+}
+
+function sessionHoursLabel() {
+  return sessionWindows()
+    .map(({ session, start, end }) => {
+      const format = (minutes: number) =>
+        `${String(Math.floor(minutes / 60)).padStart(2, "0")}.${String(minutes % 60).padStart(2, "0")}`;
+      return `${format(start)}–${format(end)}`;
+    })
+    .join(", ");
+}
+
 function localParts() {
   const fmt = new Intl.DateTimeFormat("en-CA", {
     timeZone: TZ,
@@ -37,7 +67,7 @@ function localParts() {
 
 function currentSession(): { session: MealSession | null; date: string } {
   const { date, minutes } = localParts();
-  const found = SESSION_WINDOWS.find((w) => minutes >= w.start && minutes < w.end);
+  const found = sessionWindows().find((w) => minutes >= w.start && minutes < w.end);
   return { session: found ? found.session : null, date };
 }
 
@@ -124,6 +154,7 @@ export const getMyStatus = createServerFn({ method: "GET" })
       roles: (roles ?? []).map((r) => r.role as string),
       session,
       date,
+      sessionHours: `${sessionHoursLabel()} WITA`,
       todayTaken,
       logs: logs ?? [],
       menu: menu ?? [],

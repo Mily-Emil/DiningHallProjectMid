@@ -161,7 +161,9 @@ function StudentHome() {
                 Sesi berjalan: <strong>{SESSION_LABEL[session]}</strong>
               </span>
             ) : (
-              <span>Di luar jam sesi makan (06–08, 12–14, 18–20 WITA).</span>
+              <span>
+                Di luar jam sesi makan ({status.data?.sessionHours ?? "06.00–08.00, 12.00–14.00, 18.00–20.00 WITA"}).
+              </span>
             )}
           </div>
 

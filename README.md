@@ -37,3 +37,9 @@ New accounts are always assigned the student role; an administrator must grant
 the `staff` role to approved staff accounts through Supabase. Review existing
 staff-role assignments after applying this migration and remove any that were
 not granted to approved staff.
+
+For a temporary class demonstration, set the Vercel server environment variable
+`DEMO_DINNER_WINDOW` to `16:00-17:30` and redeploy. This opens the dinner session
+from 16.00 to 17.30 WITA while preserving the normal breakfast and lunch times.
+After the demonstration, remove the variable and redeploy to restore the normal
+dinner hours (18.00–20.00 WITA). Leave it unset for normal operation.
